@@ -165,7 +165,7 @@ defmodule PhoenixClient.Socket do
     :erlang.send_after(state.heartbeat_interval, self(), :heartbeat)
 
     if state.report_back_pid do
-      send(state.report_back_pid, :connected)
+      send(state.report_back_pid, {:phoenix_client, :connected})
     end
 
     {:noreply, %{state | status: :connected}}
@@ -173,7 +173,7 @@ defmodule PhoenixClient.Socket do
 
   def handle_info({:disconnected, reason, transport_pid}, %{transport_pid: transport_pid} = state) do
     if state.report_back_pid do
-      send(state.report_back_pid, :disconnected)
+      send(state.report_back_pid, {:phoenix_client, :disconnected})
     end
 
     {:noreply, close(reason, state)}
