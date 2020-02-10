@@ -28,6 +28,11 @@ defmodule PhoenixClient.Socket do
     GenServer.stop(pid)
   end
 
+  @doc "Disconnect. Retry logic will kick in."
+  def disconnect(pid_or_name, reason) do
+    GenServer.cast(pid_or_name, {:disconnect, reason})
+  end
+
   @spec connected?(pid | atom) :: boolean
   def connected?(pid_or_name) do
     GenServer.call(pid_or_name, :status) == :connected
@@ -158,6 +163,12 @@ defmodule PhoenixClient.Socket do
   @impl true
   def handle_call(:status, _from, state) do
     {:reply, state.status, state}
+  end
+
+  @impl true
+  def handle_cast({:disconnect, reason}, %{transport_pid: pid} = state) do
+    send(self(), {:disconnected, reason, pid})
+    {:noreply, state}
   end
 
   @impl true
