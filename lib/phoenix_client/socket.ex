@@ -25,6 +25,7 @@ defmodule PhoenixClient.Socket do
   end
 
   def stop(pid) do
+    :ok = GenServer.call(pid, :leave_everything)
     GenServer.stop(pid)
   end
 
@@ -158,6 +159,20 @@ defmodule PhoenixClient.Socket do
         channels = Map.drop(channels, [topic])
         {:reply, {:ok, push}, %{state | channels: channels}}
     end
+  end
+
+  @impl true
+  def handle_call(:leave_everything, _from, %{channels: channels} = state) do
+    state =
+      Enum.reduce(channels, state, fn {topic, {_channel_pid, monitor_ref}}, acc ->
+        Process.demonitor(monitor_ref)
+        message = Message.leave(topic)
+        {_push, state} = push_message(message, acc)
+        channels = Map.drop(channels, [topic])
+        %{state | channels: channels}
+      end)
+
+    {:reply, :ok, state}
   end
 
   @impl true
